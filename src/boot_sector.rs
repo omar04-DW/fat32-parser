@@ -80,4 +80,3 @@ impl Fat32Geometry {
         self.first_data_sector + (cluster - 2) * self.sectors_per_cluster
     }
 }
-l
