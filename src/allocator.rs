@@ -1,100 +1,98 @@
-// On importe les types nécessaires pour écrire un allocateur global
+// On importe les outils nécessaires pour écrire un allocateur global en no_std
 use core::alloc::{GlobalAlloc, Layout};
 use core::ptr::null_mut;
 
-// Taille de notre "tas" (heap) en mémoire : ici 1 Mo.
-// C'est une zone mémoire dans laquelle on va venir piocher.
+// On crée une zone mémoire fixe de 1 Mo qui servira de "heap".
+// C'est comme si on réservait un grand tableau de bytes pour nos allocations.
 const HEAP_SIZE: usize = 1024 * 1024;
 
-// On définit une structure Heap qui sera alignée sur 8 octets.
-// L'alignement, c'est pour respecter les contraintes du CPU.
+// Cette structure représente notre heap mais avec un alignement de 8 octets.
+// L’alignement est important car certaines données en mémoire doivent être alignées.
 #[repr(align(8))]
 struct Heap {
     _inner: [u8; HEAP_SIZE],
 }
 
-// On crée une variable globale HEAP qui contient notre mémoire brute.
-// `static mut` = global modifiable, donc dangereux si mal utilisé → à encadrer.
+// On crée un vrai HEAP global qui contient notre mémoire brute.
+// Comme c’est global + modifiable → `static mut` (donc dangereux).
+// C’est pour ça qu’on entoure tout le reste d’unsafe.
 static mut HEAP: Heap = Heap {
     _inner: [0; HEAP_SIZE],
 };
 
-// Notre allocateur "bump" : il a juste besoin de savoir
-// où il en est (`next`) et où il s’arrête (`end`).
+// Notre allocateur "Bump" est le plus simple possible :
+// - On part du début du heap
+// - À chaque allocation, on avance un pointeur (next)
+// - On ne revient jamais en arrière (pas de free)
 pub struct BumpAllocator {
-    next: usize,
-    end: usize,
+    next: usize, // prochaine adresse libre
+    end: usize,  // fin du heap
 }
 
-// On dit au compilateur que cette structure peut être utilisée
-// depuis plusieurs threads. Ici, c'est à nous de garantir la sécurité.
+// On indique que notre allocateur peut être utilisé de manière thread-safe.
+// Ici c’est à nous d’assurer la sécurité car on utilise du unsafe.
 unsafe impl Sync for BumpAllocator {}
 
 impl BumpAllocator {
-    // Constructeur de l'allocateur.
-    // Il initialise `next` et `end` pour pointer sur notre HEAP statique.
-    //
-    // # Safety
-    // Cette fonction suppose que HEAP est bien initialisé
-    // et qu'on ne fera qu'une seule instance de BumpAllocator.
-    pub const unsafe fn new() -> Self {
-        // On récupère l'adresse de début du tableau HEAP.
+    /// Constructeur NON-CONST (pour éviter l’erreur du compilateur).
+    ///
+    /// # Safety
+    /// Cette fonction doit être appelée UNE SEULE FOIS.
+    pub unsafe fn new() -> Self {
+        // Adresse de début du tableau HEAP (notre zone mémoire)
         let start = HEAP._inner.as_ptr() as usize;
+
         Self {
             next: start,
             end: start + HEAP_SIZE,
         }
     }
 
-    // Fonction interne qui fait vraiment l’allocation.
-    //
-    // # Safety
-    // - Doit être appelée uniquement depuis l'implémentation de GlobalAlloc
-    // - Non thread-safe (pas de synchronisation).
+    /// Fonction interne qui fait vraiment l’allocation.
+    ///
+    /// # Safety
+    /// - Doit être appelée depuis GlobalAlloc
+    /// - Pas sécurisée pour plusieurs threads
     unsafe fn alloc_inner(&mut self, layout: Layout) -> *mut u8 {
-        let align = layout.align();
-        let size = layout.size();
+        let align = layout.align(); // alignement demandé
+        let size = layout.size();   // taille demandée
 
-        // On part de la prochaine adresse disponible.
         let mut current = self.next;
 
-        // On aligne l'adresse si nécessaire.
+        // Si l'adresse actuelle n'est pas alignée, on la décale
         if current % align != 0 {
             current += align - (current % align);
         }
 
-        // Si on dépasse la fin du heap, on n'a plus de mémoire.
+        // Si on n’a plus assez de place, on renvoie null
         if current + size > self.end {
             return null_mut();
         }
 
-        // On réserve la place en avançant `next`.
+        // On réserve la zone
         self.next = current + size;
 
-        // On renvoie un pointeur vers la zone allouée.
+        // Et on renvoie un pointeur vers la mémoire
         current as *mut u8
     }
 }
 
-// C’est ici qu’on respecte le contrat de GlobalAlloc.
-// C’est ce que le compilateur va appeler quand on utilise Box, Vec, etc.
+// Ici, on implémente le trait GlobalAlloc.
+// C’est ce que Rust utilise pour allouer la mémoire avec Box, Vec, etc.
 unsafe impl GlobalAlloc for BumpAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        // Petit hack : on convertit &self (non mutable) en &mut self
-        // car l'API GlobalAlloc donne `&self` mais nous avons besoin
-        // de modifier l'état interne (next).
+        // Hack obligatoire : GlobalAlloc ne nous donne qu’un &self,
+        // mais on a besoin de &mut self → on cast le pointeur.
         let this = self as *const _ as *mut BumpAllocator;
         (*this).alloc_inner(layout)
     }
 
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
-        // Bump allocator simple : on ne libère jamais.
-        // La mémoire sera rendue seulement quand le programme s'arrête.
-        // Pour le projet, ce comportement simple est suffisant.
+        // Bump allocator simple : on NE LIBÈRE JAMAIS la mémoire.
+        // C'est volontaire → les free sont ignorés.
     }
 }
 
-// On déclare notre allocateur global pour tout le crate.
-// À partir de là, toutes les allocations (Box, Vec, etc.) passeront par lui.
+// On dit à Rust : “utilise mon allocateur comme allocateur global du crate”.
 #[global_allocator]
 static GLOBAL_ALLOCATOR: BumpAllocator = unsafe { BumpAllocator::new() };
