@@ -26,4 +26,4 @@ unsafe impl GlobalAlloc for DummyAllocator {
 // sinon le runtime de test crashe en essayant d'allouer.
 #[cfg(not(test))]
 #[global_allocator]
-static GLOBAL_ALLOCATOR: DummyAllocator = DummyAllocator; h
+static GLOBAL_ALLOCATOR: DummyAllocator = DummyAllocator; 
