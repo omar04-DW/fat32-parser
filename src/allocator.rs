@@ -27,3 +27,4 @@ unsafe impl GlobalAlloc for DummyAllocator {
 #[cfg(not(test))]
 #[global_allocator]
 static GLOBAL_ALLOCATOR: DummyAllocator = DummyAllocator; 
+k
