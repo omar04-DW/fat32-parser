@@ -51,3 +51,4 @@ mod tests {
         assert_eq!(DummyDevice::SECTOR_SIZE, 512);
     }
 }
+ff
