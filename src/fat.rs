@@ -9,4 +9,4 @@ impl FatEntry {
     pub fn is_end(&self) -> bool {
         self.value >= 0x0FFFFFF8
     }
-}j
+}
