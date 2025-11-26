@@ -15,20 +15,27 @@ struct Heap {
 }
 
 impl BumpAllocator {
-    /// Crée un nouvel allocateur sur une zone mémoire donnée.
-    /// 
-    /// # Safety
-    /// - `heap_start` et `heap_size` doivent pointer vers une zone mémoire valide
-    /// - Cette zone ne doit pas être utilisée ailleurs
-    /// - Doit être appelé une seule fois
-    pub const unsafe fn new(heap_start: usize, heap_size: usize) -> Self {
+    /// Crée un nouvel allocateur vide (sera initialisé au premier appel).
+    pub const fn empty() -> Self {
         Self {
             heap: UnsafeCell::new(Heap {
-                start: heap_start,
-                end: heap_start + heap_size,
-                next: heap_start,
+                start: 0,
+                end: 0,
+                next: 0,
             }),
         }
+    }
+    
+    /// Initialise l'allocateur avec une zone mémoire.
+    /// 
+    /// # Safety
+    /// - Doit être appelé une seule fois avant toute allocation
+    /// - `heap_start` et `heap_size` doivent pointer vers une zone mémoire valide
+    unsafe fn init(&self, heap_start: usize, heap_size: usize) {
+        let heap = &mut *self.heap.get();
+        heap.start = heap_start;
+        heap.end = heap_start + heap_size;
+        heap.next = heap_start;
     }
 }
 
@@ -41,6 +48,11 @@ unsafe impl GlobalAlloc for BumpAllocator {
     /// Retourne null si pas assez de mémoire disponible.
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let heap = &mut *self.heap.get();
+        
+        // Initialisation lazy au premier appel
+        if heap.start == 0 {
+            self.init(HEAP_MEMORY.as_ptr() as usize, HEAP_MEMORY.len());
+        }
         
         // Aligne le pointeur selon les besoins du Layout
         let alloc_start = align_up(heap.next, layout.align());
@@ -74,12 +86,7 @@ static mut HEAP_MEMORY: [u8; 65536] = [0; 65536];
 
 #[cfg(not(test))]
 #[global_allocator]
-static GLOBAL_ALLOCATOR: BumpAllocator = unsafe {
-    BumpAllocator::new(
-        core::ptr::addr_of!(HEAP_MEMORY) as usize,
-        65536,
-    )
-};
+static GLOBAL_ALLOCATOR: BumpAllocator = BumpAllocator::empty();
 
 #[cfg(test)]
 mod tests {
