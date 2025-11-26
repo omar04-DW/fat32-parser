@@ -87,7 +87,7 @@ impl<'a, D: BlockDevice> Fat32Fs<'a, D> {
         let mut sector = [0u8; 512];
         self.device
             .read_sectors(fat_sector, 1, &mut sector)
-            .map_err(|e| e.into())?;
+            .map_err(Fat32Error::from)?;
 
         // Extrait la valeur 32 bits (little-endian)
         let value = u32::from_le_bytes([
@@ -123,7 +123,7 @@ impl<'a, D: BlockDevice> Fat32Fs<'a, D> {
         let lba = self.geom.cluster_to_lba(cluster);
         self.device
             .read_sectors(lba, self.geom.sectors_per_cluster, buf)
-            .map_err(|e| e.into())
+            .map_err(Fat32Error::from)
     }
 
     /// Lit la chaîne complète de clusters (utile pour lire un fichier entier).

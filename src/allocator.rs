@@ -76,8 +76,8 @@ static mut HEAP_MEMORY: [u8; 65536] = [0; 65536];
 #[global_allocator]
 static GLOBAL_ALLOCATOR: BumpAllocator = unsafe {
     BumpAllocator::new(
-        HEAP_MEMORY.as_ptr() as usize,
-        HEAP_MEMORY.len(),
+        core::ptr::addr_of!(HEAP_MEMORY) as usize,
+        65536,
     )
 };
 
