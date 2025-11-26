@@ -51,7 +51,10 @@ unsafe impl GlobalAlloc for BumpAllocator {
         
         // Initialisation lazy au premier appel
         if heap.start == 0 {
-            self.init(HEAP_MEMORY.as_ptr() as usize, HEAP_MEMORY.len());
+            self.init(
+                core::ptr::addr_of!(HEAP_MEMORY) as usize,
+                65536,
+            );
         }
         
         // Aligne le pointeur selon les besoins du Layout
