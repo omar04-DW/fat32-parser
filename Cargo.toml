@@ -2,7 +2,29 @@
 name = "fat32_parser"
 version = "0.1.0"
 edition = "2021"
+description = "A no_std FAT32 filesystem parser for embedded systems"
+repository = "https://github.com/omar04-DW/fat32-parser"
+keywords = ["fat32", "filesystem", "no_std", "embedded"]
+categories = ["embedded", "no-std", "filesystem"]
 
 [dependencies]
+# Aucune dépendance externe pour rester no_std compatible
 
 [dev-dependencies]
+# Pour les tests uniquement
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.test]
+opt-level = 1
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
