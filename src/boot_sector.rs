@@ -40,10 +40,14 @@ impl BiosParameterBlock {
     ///
     /// ```no_run
     /// use fat32_parser::boot_sector::BiosParameterBlock;
+    /// use core::ptr;
     ///
     /// let boot_sector = [0u8; 512]; // Secteur lu depuis un disque
     /// let bpb = unsafe { BiosParameterBlock::from_sector(&boot_sector) };
-    /// println!("Bytes per sector: {}", bpb.bytes_per_sector);
+    /// 
+    /// // IMPORTANT: Avec #[repr(packed)], on doit utiliser ptr::addr_of! pour éviter les références non alignées
+    /// let bytes_per_sector = unsafe { ptr::addr_of!(bpb.bytes_per_sector).read_unaligned() };
+    /// // Utilise bytes_per_sector...
     /// ```
     pub unsafe fn from_sector(sector: &[u8]) -> &Self {
         // Dans le format FAT, la BPB commence à l'offset 11 dans le secteur.
