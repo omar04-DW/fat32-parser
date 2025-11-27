@@ -16,20 +16,8 @@ Parser FAT32 no_std pour systèmes embarqués en Rust.
 
 🏗️ Structure
 
-fat32-parser/
-├── src/
-│   ├── lib.rs              # Point d'entrée no_std 
-│   ├── allocator.rs        # Allocateur Bump 64KB 
-│   ├── block_device.rs     # Trait périphériques bloc 
-│   ├── boot_sector.rs      # BPB + géométrie FAT32 
-│   ├── dir_entry.rs        # Entrées répertoire 32 bytes 
-│   ├── fat.rs              # Table FAT + tests 
-│   ├── filesystem.rs       # Montage + lecture clusters 
-│   └── error.rs            # 10 types d'erreurs 
-├── Cargo.toml              # Configuration du projet
-├── Cargo.lock              # Dépendances verrouillées (généré)
-├── rust-toolchain.toml     # Version Rust fixée 
-└── README.md               # Ce fichier
+<img width="453" height="299" alt="image" src="https://github.com/user-attachments/assets/e8dafba2-5223-45db-a15c-e3b5d8732fe0" />
+
 
 ### Détails des modules
 
