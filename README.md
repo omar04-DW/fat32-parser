@@ -18,17 +18,17 @@ Parser FAT32 no_std pour systèmes embarqués en Rust.
 
 fat32-parser/
 ├── src/
-│   ├── lib.rs              # Point d'entrée no_std (17 lignes)
-│   ├── allocator.rs        # Allocateur Bump 64KB (112 lignes)
-│   ├── block_device.rs     # Trait périphériques bloc (56 lignes)
-│   ├── boot_sector.rs      # BPB + géométrie FAT32 (122 lignes)
-│   ├── dir_entry.rs        # Entrées répertoire 32 bytes (35 lignes)
-│   ├── fat.rs              # Table FAT + tests (147 lignes)
-│   ├── filesystem.rs       # Montage + lecture clusters (305 lignes)
-│   └── error.rs            # 10 types d'erreurs (62 lignes)
+│   ├── lib.rs              # Point d'entrée no_std 
+│   ├── allocator.rs        # Allocateur Bump 64KB 
+│   ├── block_device.rs     # Trait périphériques bloc 
+│   ├── boot_sector.rs      # BPB + géométrie FAT32 
+│   ├── dir_entry.rs        # Entrées répertoire 32 bytes 
+│   ├── fat.rs              # Table FAT + tests 
+│   ├── filesystem.rs       # Montage + lecture clusters 
+│   └── error.rs            # 10 types d'erreurs 
 ├── Cargo.toml              # Configuration du projet
 ├── Cargo.lock              # Dépendances verrouillées (généré)
-├── rust-toolchain.toml     # Version Rust fixée (nightly-2024-11-01)
+├── rust-toolchain.toml     # Version Rust fixée 
 └── README.md               # Ce fichier
 
 ### Détails des modules
