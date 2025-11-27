@@ -299,8 +299,27 @@ mod tests {
     }
 
     #[test]
+    fn test_boot_sector_too_small() {
+        let dev = DummyDevice;
+        let small_boot = [0u8; 100]; // Trop petit
+        assert!(matches!(
+            Fat32Fs::mount(&dev, &small_boot),
+            Err(Fat32Error::InvalidBootSector)
+        ));
+    }
+        #[test]
+    fn test_valid_signature_but_not_fat32() {
+        let dev = DummyDevice;
+        let mut boot = [0u8; 512];
+        boot[510] = 0x55;
+        boot[511] = 0xAA;
+        // Signature valide mais BPB invalide (fat_size_32 = 0)
+        let result = Fat32Fs::mount(&dev, &boot);
+        assert!(matches!(result, Err(Fat32Error::NotFat32)));
+    }
+
+    #[test]
     fn test_fat_entry_reading() {
         // Test avec un device qui retourne des données connues
-        // (à compléter avec un MockDevice plus sophistiqué)
     }
 }

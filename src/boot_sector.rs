@@ -25,13 +25,28 @@ pub struct BiosParameterBlock {
 }
 
 impl BiosParameterBlock {
-    // Construit une référence vers une BPB à partir des octets du secteur de boot.
-    //
-    // # Safety
-    // - `sector` doit contenir au moins 11 + sizeof(BiosParameterBlock) octets.
-    // - les données doivent réellement être celles d’un boot sector FAT32.
+    /// Construit une référence vers une BPB à partir des octets du secteur de boot.
+    ///
+    /// # Safety
+    ///
+    /// Cette fonction est unsafe car elle effectue un cast de pointeur brut sans validation.
+    /// L'appelant doit garantir que :
+    /// - `sector` contient au moins `11 + size_of::<BiosParameterBlock>()` octets (≈ 47 octets minimum)
+    /// - Les octets à partir de l'offset 11 sont correctement alignés pour `BiosParameterBlock`
+    /// - Les données représentent une BPB FAT32 valide provenant d'un vrai boot sector
+    /// - La durée de vie de `sector` couvre toute utilisation de la référence retournée
+    ///
+    /// # Exemples
+    ///
+    /// ```no_run
+    /// use fat32_parser::boot_sector::BiosParameterBlock;
+    ///
+    /// let boot_sector = [0u8; 512]; // Secteur lu depuis un disque
+    /// let bpb = unsafe { BiosParameterBlock::from_sector(&boot_sector) };
+    /// println!("Bytes per sector: {}", bpb.bytes_per_sector);
+    /// ```
     pub unsafe fn from_sector(sector: &[u8]) -> &Self {
-        // Dans le format FAT, la BPB commence à l’offset 11 dans le secteur.
+        // Dans le format FAT, la BPB commence à l'offset 11 dans le secteur.
         let offset = 11;
         &*(sector.as_ptr().add(offset) as *const BiosParameterBlock)
     }
@@ -53,7 +68,7 @@ impl Fat32Geometry {
         let fats = bpb.num_fats as u32;
         let reserved = bpb.reserved_sector_count as u32;
 
-        // Taille d’une FAT en secteurs.
+        // Taille d'une FAT en secteurs.
         // En FAT32, fat_size_32 est utilisé, mais on gère aussi le cas 16 bits.
         let fat_size = if bpb.fat_size_16 != 0 {
             bpb.fat_size_16 as u32
@@ -78,5 +93,28 @@ impl Fat32Geometry {
     // Dans FAT32, les clusters commencent à 2.
     pub fn cluster_to_lba(&self, cluster: u32) -> u32 {
         self.first_data_sector + (cluster - 2) * self.sectors_per_cluster
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cluster_to_lba() {
+        let geom = Fat32Geometry {
+            first_data_sector: 100,
+            fat_start_lba: 32,
+            root_cluster: 2,
+            sectors_per_cluster: 8,
+            bytes_per_sector: 512,
+        };
+        
+        // Cluster 2 devrait être au premier secteur de données
+        assert_eq!(geom.cluster_to_lba(2), 100);
+        // Cluster 3 devrait être 8 secteurs plus loin
+        assert_eq!(geom.cluster_to_lba(3), 108);
+        // Cluster 10
+        assert_eq!(geom.cluster_to_lba(10), 164);
     }
 }

@@ -102,4 +102,41 @@ mod tests {
         assert_eq!(align_up(4, 4), 4);
         assert_eq!(align_up(5, 4), 8);
     }
+
+    #[test]
+    fn test_align_up_power_of_two() {
+        assert_eq!(align_up(10, 8), 16);
+        assert_eq!(align_up(17, 16), 32);
+        assert_eq!(align_up(100, 64), 128);
+    }
+
+    #[test]
+    fn test_align_up_already_aligned() {
+        assert_eq!(align_up(16, 16), 16);
+        assert_eq!(align_up(32, 8), 32);
+        assert_eq!(align_up(64, 32), 64);
+    }
+
+    #[test]
+    fn test_multiple_allocations() {
+        use core::alloc::{GlobalAlloc, Layout};
+        let allocator = BumpAllocator::empty();
+        
+        unsafe {
+            // Simule une zone mémoire de test
+            allocator.init(0x1000, 1024);
+            
+            // Première allocation
+            let layout = Layout::from_size_align(16, 8).unwrap();
+            let ptr1 = allocator.alloc(layout);
+            assert!(!ptr1.is_null());
+            
+            // Deuxième allocation
+            let ptr2 = allocator.alloc(layout);
+            assert!(!ptr2.is_null());
+            
+            // Les pointeurs doivent être différents
+            assert_ne!(ptr1, ptr2);
+        }
+    }
 }
